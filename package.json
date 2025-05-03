@@ -1,0 +1,16 @@
+{
+  "name": "dashboard-enhancer",
+  "version": "1.0.0",
+  "description": "Minimal React-based Chrome extension",
+  "main": "background.js",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}
