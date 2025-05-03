@@ -10,7 +10,7 @@
   "host_permissions": ["https://my.20i.com/*"],
   "content_scripts": [
     {
-      "matches": ["https://my.20i.com/"],
+      "matches": ["https://my.20i.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
