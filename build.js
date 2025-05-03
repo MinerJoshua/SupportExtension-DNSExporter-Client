@@ -3,7 +3,7 @@ const esbuild = require("esbuild");
 esbuild
   .build({
     entryPoints: [
-      "content/content.js", // main content script
+      "content/index.js", // main content script
       "src/popup.jsx", // popup UI entry
     ],
     bundle: true,

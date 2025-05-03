@@ -1,51 +1,45 @@
-export function setupExportHandlers(shadowRoot) {
-  const exportBtn = shadowRoot.getElementById("exportBtn");
-  const dropdown = shadowRoot.getElementById("exportDropdown");
+export async function handleExportAllClick() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
-  exportBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    dropdown.classList.toggle("active");
-  });
+    const res = await fetch("https://your-api.example.com/export/all", {
+      credentials: "include",
+      signal: controller.signal,
+    });
 
-  document.addEventListener("click", () => {
-    dropdown.classList.remove("active");
-  });
+    clearTimeout(timeout);
 
-  shadowRoot.getElementById("exportAll").addEventListener("click", async () => {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
 
-      const res = await fetch("https://your-api.example.com/export/all", {
-        credentials: "include",
-        signal: controller.signal,
-      });
+    chrome.runtime.sendMessage({
+      type: "EXPORT_SUCCESS",
+      payload: {
+        status: "done",
+        time: new Date(),
+        size: JSON.stringify(data).length,
+      },
+    });
 
-      clearTimeout(timeout);
+    alert("DNS export completed!");
+  } catch (err) {
+    chrome.runtime.sendMessage({
+      type: "EXPORT_ERROR",
+      payload: { message: err.message, time: new Date() },
+    });
+    alert(`Export failed: ${err.message}`);
+  }
+}
 
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const data = await res.json();
+export function handleExportSelectClick() {
+  alert("Feature coming soon.");
+}
 
-      chrome.runtime.sendMessage({
-        type: "EXPORT_SUCCESS",
-        payload: {
-          status: "done",
-          time: new Date(),
-          size: JSON.stringify(data).length,
-        },
-      });
+export function toggleDropdown(dropdown) {
+  dropdown.classList.toggle("active");
+}
 
-      alert("DNS export completed!");
-    } catch (err) {
-      chrome.runtime.sendMessage({
-        type: "EXPORT_ERROR",
-        payload: { message: err.message, time: new Date() },
-      });
-      alert(`Export failed: ${err.message}`);
-    }
-  });
-
-  shadowRoot.getElementById("exportSelect").addEventListener("click", () => {
-    alert("Feature coming soon.");
-  });
+export function closeDropdown(dropdown) {
+  dropdown.classList.remove("active");
 }
