@@ -1,10 +1,22 @@
 const esbuild = require("esbuild");
 
-esbuild.build({
-  entryPoints: ["src/popup.jsx"],
-  bundle: true,
-  minify: true,
-  outfile: "dist/popup.js",
-  jsx: "automatic",
-  target: ["chrome100", "firefox100"],
-}).catch(() => process.exit(1));
+esbuild
+  .build({
+    entryPoints: [
+      "content/content.js", // main content script
+      "src/popup.jsx", // popup UI entry
+    ],
+    bundle: true,
+    minify: false,
+    outdir: "dist",
+    target: ["chrome114"], // or any modern baseline
+    format: "esm",
+    loader: {
+      ".js": "jsx", // in case you use JSX in content components
+      ".jsx": "jsx",
+    },
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
+  })
+  .catch(() => process.exit(1));

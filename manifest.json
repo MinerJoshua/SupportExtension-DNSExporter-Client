@@ -3,21 +3,20 @@
   "name": "20i Support DNS exporter",
   "version": "1.0",
   "description": "Enhances dashboard functionality with DNS exporter",
-  "action": {
-    "default_popup": "dist/popup.html"
-  },
   "permissions": ["activeTab", "storage"],
   "host_permissions": ["https://my.20i.com/*"],
   "content_scripts": [
     {
       "matches": ["https://my.20i.com/*"],
-      "js": ["content.js"],
+      "js": ["dist/content/content.js"],
       "run_at": "document_idle"
     }
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "dist/popup.html",
+    "default_icon": "icon.png"
   }
 }
-
-
