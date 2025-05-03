@@ -7,7 +7,9 @@ export function setupExportHandlers(shadowRoot) {
     dropdown.classList.toggle("active");
   });
 
-  document.addEventListener("click", () => dropdown.classList.remove("active"));
+  document.addEventListener("click", () => {
+    dropdown.classList.remove("active");
+  });
 
   shadowRoot.getElementById("exportAll").addEventListener("click", async () => {
     try {
