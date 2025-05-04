@@ -8,12 +8,12 @@
   "content_scripts": [
     {
       "matches": ["https://my.20i.com/*"],
-      "js": ["dist/content/content.js"],
+      "js": ["dist/content/index.js"],
       "run_at": "document_idle"
     }
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "dist/background/index.js"
   },
   "action": {
     "default_popup": "dist/popup.html",

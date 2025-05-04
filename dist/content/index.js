@@ -76,22 +76,11 @@ function createToolbar(targetElement) {
 // content/actions.js
 async function handleExportAllClick() {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15e3);
-    const res = await fetch("https://your-api.example.com/export/all", {
-      credentials: "include",
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
-    if (!res.ok)
-      throw new Error(`Server error ${res.status}`);
-    const data = await res.json();
-    chrome.runtime.sendMessage({
-      type: "EXPORT_SUCCESS",
-      payload: {
-        status: "done",
-        time: /* @__PURE__ */ new Date(),
-        size: JSON.stringify(data).length
+    chrome.runtime.sendMessage({ type: "EXPORT_DNS" }, (response) => {
+      if (response?.status === "done") {
+        console.log("DNS Export Complete:", response.data);
+      } else if (response?.status === "error") {
+        console.error("DNS Export Failed:", response.message);
       }
     });
     alert("DNS export completed!");
