@@ -11,24 +11,25 @@ async function fetchJson(url, options = {}) {
 async function handleExportDns(message, sender) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15e3);
-  const [dnsRecords] = await Promise.all([
-    fetchJson("https://my.20i.com/a/package?fields%5B%5D=names", {
+  const [allPackages] = await Promise.all([
+    fetchJson("https://my.20i.com/a/package?fields%5B%5D=names&fields%5B%5D=id", {
       credentials: "include",
       signal: controller.signal
     })
   ]);
   clearTimeout(timeout);
-  console.log(dnsRecords);
-  chrome.runtime.sendMessage({
-    type: "EXPORT_DNS_COMPLETE",
-    payload: { success: true }
-  });
+  const selectedPackages = allPackages.reduce((acc, item) => {
+    acc[item.id] = item.names;
+    return acc;
+  }, {});
+  console.log(selectedPackages);
   return { status: "done" };
 }
 
 // background/index.js
 var handlers = {
   EXPORT_DNS: handleExportDns
+  // FETCH_COMBINED_DATA: handleFetchData,
 };
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handler = handlers[message.type];

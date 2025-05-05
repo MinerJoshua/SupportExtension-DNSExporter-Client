@@ -1,7 +1,9 @@
 import { handleExportDns } from './handlers/exportDns.js';
+//import { handleFetchData } from './utils/fetchData.js';
 
 const handlers = {
   EXPORT_DNS: handleExportDns,
+ // FETCH_COMBINED_DATA: handleFetchData,
 };
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

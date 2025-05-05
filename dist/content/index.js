@@ -78,17 +78,13 @@ async function handleExportAllClick() {
   try {
     chrome.runtime.sendMessage({ type: "EXPORT_DNS" }, (response) => {
       if (response?.status === "done") {
-        console.log("DNS Export Complete:", response.data);
+        console.log("DNS Export Complete");
       } else if (response?.status === "error") {
         console.error("DNS Export Failed:", response.message);
       }
     });
     alert("DNS export completed!");
   } catch (err) {
-    chrome.runtime.sendMessage({
-      type: "EXPORT_ERROR",
-      payload: { message: err.message, time: /* @__PURE__ */ new Date() }
-    });
     alert(`Export failed: ${err.message}`);
   }
 }
