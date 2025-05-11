@@ -4,7 +4,6 @@ esbuild
   .build({
     entryPoints: [
       "content/index.js", // main content script
-      "src/popup.jsx", // popup UI entry
       "background/index.js", //background js script
     ],
     bundle: true,
