@@ -63,12 +63,14 @@ export async function handleExportDns(message, sender) {
 
   if (!Array.isArray(sortedPackages)) throw new Error("Invalid response");
 
+  console.log(sortedPackages);
   queuedItems = sortedPackages.list.map((id, i) => ({
     id: `item-${i}`,
     name: `Package ${id}`,
     data: { id }, // store ID so it's accessible in DNS call
     status: "queued",
   }));
+
 
   processedItems = [];
 
