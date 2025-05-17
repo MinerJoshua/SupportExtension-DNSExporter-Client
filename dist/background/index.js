@@ -57,9 +57,9 @@ async function handleExportDns(message, sender) {
       }
     )
   ]);
-  if (!Array.isArray(sortedPackages))
+  if (!Array.isArray(sortedPackages.list))
     throw new Error("Invalid response");
-  console.log(sortedPackages);
+  console.log(sortedPackages.list);
   queuedItems = sortedPackages.list.map((id, i) => ({
     id: `item-${i}`,
     name: `Package ${id}`,
