@@ -8,6 +8,30 @@ async function fetchJson(url, options = {}) {
 }
 
 // background/handlers/exportDns.js
+async function processDnsInBatches(items, concurrency = 5) {
+  const results = [];
+  let index = 0;
+  async function worker() {
+    while (index < items.length) {
+      const item = items[index++];
+      try {
+        const data = await fetchJson(
+          `https://my.20i.com/a/package/${item.data.id}/dns`
+        );
+        results.push({ ...item, status: "success", result: data });
+        processedItems.push({ ...item, status: "success" });
+      } catch (err) {
+        results.push({ ...item, status: "fail" });
+        processedItems.push({ ...item, status: "fail" });
+      }
+      queuedItems = queuedItems.filter((q) => q.id !== item.id);
+    }
+  }
+  const workers = Array(concurrency).fill().map(() => worker());
+  await Promise.all(workers);
+  console.log(results);
+  return results;
+}
 async function handleExportDns(message, sender) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15e3);
@@ -33,8 +57,19 @@ async function handleExportDns(message, sender) {
       }
     )
   ]);
+  if (!Array.isArray(sortedPackages))
+    throw new Error("Invalid response");
   console.log(sortedPackages);
-  return { status: "done" };
+  queuedItems = sortedPackages.list.map((id, i) => ({
+    id: `item-${i}`,
+    name: `Package ${id}`,
+    data: { id },
+    // store ID so it's accessible in DNS call
+    status: "queued"
+  }));
+  processedItems = [];
+  await processDnsInBatches([...queuedItems], 5);
+  return { status: "done", processed: processedItems.length };
 }
 
 // background/index.js
