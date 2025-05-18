@@ -7,6 +7,40 @@ async function fetchJson(url, options = {}) {
   return await response.json();
 }
 
+// background/utils/api-calls.js
+async function getAllPackages(controller) {
+  const url = "https://my.20i.com/a/package?fields%5B%5D=names&fields%5B%5D=id";
+  return await fetchJson(url, {
+    credentials: "include",
+    signal: controller?.signal
+  });
+}
+async function getPackageIDs(Packages) {
+  const url = "https://dns-exporter.joshuaminer.uk/build_domain_package_list.py";
+  return await fetchJson(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(Packages)
+  });
+}
+
+// background/utils/combineJson.js
+function combineDnsResponses(...responses) {
+  const combined = {};
+  for (const response of responses) {
+    console.log(response);
+    for (const domain in response) {
+      const recordSet = response[domain];
+      if (recordSet && Array.isArray(recordSet.records) && recordSet.records.length > 0) {
+        combined[domain] = recordSet.records;
+      }
+    }
+  }
+  return combined;
+}
+
 // background/handlers/exportDns.js
 async function processDnsInBatches(items, concurrency = 5) {
   const results = [];
@@ -29,37 +63,21 @@ async function processDnsInBatches(items, concurrency = 5) {
   }
   const workers = Array(concurrency).fill().map(() => worker());
   await Promise.all(workers);
-  console.log(results);
   return results;
 }
 async function handleExportDns(message, sender) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15e3);
-  const [allPackages] = await Promise.all([
-    fetchJson(
-      "https://my.20i.com/a/package?fields%5B%5D=names&fields%5B%5D=id",
-      {
-        credentials: "include",
-        signal: controller.signal
-      }
-    )
-  ]);
-  clearTimeout(timeout);
-  const [sortedPackages] = await Promise.all([
-    fetchJson(
-      "https://dns-exporter.joshuaminer.uk/build_domain_package_list.py",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(allPackages)
-      }
-    )
-  ]);
+  const timeout = setTimeout(() => controller.abort(), 1e4);
+  try {
+    const allPackages = await getAllPackages(controller);
+    const sortedPackages2 = await getPackageIDs(allPackages);
+    clearTimeout(timeout);
+  } catch (error) {
+    console.error("API error:", error);
+    clearTimeout(timeout);
+  }
   if (!Array.isArray(sortedPackages.list))
     throw new Error("Invalid response");
-  console.log(sortedPackages.list);
   queuedItems = sortedPackages.list.map((id, i) => ({
     id: `item-${i}`,
     name: `Package ${id}`,
@@ -68,7 +86,8 @@ async function handleExportDns(message, sender) {
     status: "queued"
   }));
   processedItems = [];
-  await processDnsInBatches([...queuedItems], 5);
+  const allDnsArray = await processDnsInBatches([...queuedItems], 5);
+  const combinedDNSRecords = combineDnsResponses(allDnsArray);
   return { status: "done", processed: processedItems.length };
 }
 

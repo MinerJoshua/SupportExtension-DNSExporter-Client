@@ -1,5 +1,6 @@
 import { fetchJson } from "../utils/fetchData.js";
-//import { combineResponses } from '../utils/combineResponses.js';
+import { getAllPackages, getPackageIDs } from "../utils/api-calls.js";
+import { combineDnsResponses } from "../utils/combineJson.js";
 
 async function processDnsInBatches(items, concurrency = 5) {
   const results = [];
@@ -28,38 +29,23 @@ async function processDnsInBatches(items, concurrency = 5) {
     .map(() => worker());
   await Promise.all(workers);
 
-  console.log(results);
   return results;
 }
 
 export async function handleExportDns(message, sender) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 10000);
 
-  const [allPackages] = await Promise.all([
-    fetchJson(
-      "https://my.20i.com/a/package?fields%5B%5D=names&fields%5B%5D=id",
-      {
-        credentials: "include",
-        signal: controller.signal,
-      }
-    ),
-  ]);
+  try {
+    const allPackages = await getAllPackages(controller);
+    const sortedPackages = await getPackageIDs(allPackages);
+    clearTimeout(timeout);
 
-  clearTimeout(timeout);
-
-  const [sortedPackages] = await Promise.all([
-    fetchJson(
-      "https://dns-exporter.joshuaminer.uk/build_domain_package_list.py",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(allPackages),
-      }
-    ),
-  ]);
+    // Do something with sortedPackages
+  } catch (error) {
+    console.error("API error:", error);
+    clearTimeout(timeout);
+  }
 
   if (!Array.isArray(sortedPackages.list)) throw new Error("Invalid response");
 
@@ -72,20 +58,10 @@ export async function handleExportDns(message, sender) {
 
   processedItems = [];
 
-  await processDnsInBatches([...queuedItems], 5); // You can tweak concurrency here
-  /* 
-  const selectedPackages = allPackages.reduce((acc, item) => {
-    acc[item.id] = item.names;
-    return acc;
-  }, {});
+  const allDnsArray = await processDnsInBatches([...queuedItems], 5); // You can tweak concurrency here
+  const combinedDNSRecords = combineDnsResponses(allDnsArray);
 
-  console.log(selectedPackages); */
-  //const combined = combineResponses(dnsRecords, metadata);
-
-  //  chrome.runtime.sendMessage({
-  //    type: 'EXPORT_DNS_COMPLETE',
-  //    payload: { success: true },
-  //  });
+  //Compress and Send Combined Records to External Server
 
   return { status: "done", processed: processedItems.length };
 }
