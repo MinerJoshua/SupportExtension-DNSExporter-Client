@@ -1,5 +1,9 @@
 import { fetchJson } from "../utils/fetchData.js";
-import { getAllPackages, getPackageIDs } from "../utils/api-calls.js";
+import {
+  getAllPackages,
+  getPackageIDs,
+  getZoneFiles,
+} from "../utils/api-calls.js";
 import { combineDnsResponses } from "../utils/combineJson.js";
 
 async function processDnsInBatches(items, concurrency = 5) {
@@ -36,16 +40,9 @@ export async function handleExportDns(message, sender) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
 
-  try {
-    const allPackages = await getAllPackages(controller);
-    const sortedPackages = await getPackageIDs(allPackages);
-    clearTimeout(timeout);
-
-    // Do something with sortedPackages
-  } catch (error) {
-    console.error("API error:", error);
-    clearTimeout(timeout);
-  }
+  const allPackages = await getAllPackages(controller);
+  const sortedPackages = await getPackageIDs(allPackages);
+  clearTimeout(timeout);
 
   if (!Array.isArray(sortedPackages.list)) throw new Error("Invalid response");
 
@@ -59,8 +56,9 @@ export async function handleExportDns(message, sender) {
   processedItems = [];
 
   const allDnsArray = await processDnsInBatches([...queuedItems], 5); // You can tweak concurrency here
-  const combinedDNSRecords = combineDnsResponses(allDnsArray);
-
+  const combinedDNSRecords = await combineDnsResponses(allDnsArray);
+  console.log(combinedDNSRecords);
+  await getZoneFiles(combinedDNSRecords);
   //Compress and Send Combined Records to External Server
 
   return { status: "done", processed: processedItems.length };
