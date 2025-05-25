@@ -52,3 +52,22 @@ export async function fetchJson(url, options = {}) {
 
   return await response.json();
 }
+
+export async function withSessionCookie(fn, ...args) {
+  const cookie = await new Promise((resolve) => {
+    chrome.cookies.get(
+      {
+        url: "https://my.20i.com",
+        name: "PHPSESSID",
+      },
+      resolve
+    );
+  });
+
+  if (!cookie || !cookie.value) {
+    throw new Error("Session cookie not found");
+  }
+
+  // Call your function with all provided args, plus the cookie
+  return fn(...args, cookie.value);
+}

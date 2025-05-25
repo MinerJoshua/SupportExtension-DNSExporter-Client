@@ -3,7 +3,7 @@
   "name": "20i Support DNS exporter",
   "version": "1.0",
   "description": "Enhances dashboard functionality with DNS exporter",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "cookies"],
   "host_permissions": ["https://my.20i.com/*"],
   "content_scripts": [
     {

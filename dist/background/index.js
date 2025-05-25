@@ -4223,6 +4223,21 @@ async function fetchJson(url, options = {}) {
   }
   return await response.json();
 }
+async function withSessionCookie(fn, ...args) {
+  const cookie = await new Promise((resolve) => {
+    chrome.cookies.get(
+      {
+        url: "https://my.20i.com",
+        name: "PHPSESSID"
+      },
+      resolve
+    );
+  });
+  if (!cookie || !cookie.value) {
+    throw new Error("Session cookie not found");
+  }
+  return fn(...args, cookie.value);
+}
 
 // background/utils/api-calls.js
 async function getAllPackages(controller) {
@@ -4233,92 +4248,28 @@ async function getAllPackages(controller) {
     signal: controller?.signal
   });
 }
-async function getPackageIDs(Packages) {
-  const url = "https://dns-exporter.joshuaminer.uk/build_domain_package_list.py";
+async function getZoneFiles(packageList, cookie) {
+  const url = "https://dns-exporter.joshuaminer.uk/export_to_zonefile.py";
   return await fetchJson(url, {
     method: "POST",
-    compress: true,
+    compress: false,
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "X-Session-Token": cookie
     },
-    body: JSON.stringify(Packages)
+    json: packageList
   });
-}
-async function getZoneFiles(combinedDnsRecordsJson) {
-  const url = "https://dns-exporter.joshuaminer.uk/convert_json_to_zonefile.py";
-  return await fetchJson(url, {
-    method: "POST",
-    compress: true,
-    headers: {
-      "Content-Type": "application/json"
-    },
-    json: combinedDnsRecordsJson
-  });
-}
-
-// background/utils/combineJson.js
-function combineDnsResponses(responses) {
-  const combined = {};
-  for (const response of responses) {
-    const result = response?.result;
-    if (!result || typeof result !== "object" || Array.isArray(result)) {
-      continue;
-    }
-    for (const domain in result) {
-      const recordSet = result[domain];
-      if (recordSet && Array.isArray(recordSet.records) && recordSet.records.length > 0) {
-        combined[domain] = recordSet.records;
-      }
-    }
-  }
-  return combined;
 }
 
 // background/handlers/exportDns.js
-async function processDnsInBatches(items, concurrency = 5) {
-  const results = [];
-  let index = 0;
-  async function worker() {
-    while (index < items.length) {
-      const item = items[index++];
-      try {
-        const data = await fetchJson(
-          `https://my.20i.com/a/package/${item.data.id}/dns`
-        );
-        results.push({ ...item, status: "success", result: data });
-        processedItems.push({ ...item, status: "success" });
-      } catch (err2) {
-        results.push({ ...item, status: "fail" });
-        processedItems.push({ ...item, status: "fail" });
-      }
-      queuedItems = queuedItems.filter((q) => q.id !== item.id);
-    }
-  }
-  const workers = Array(concurrency).fill().map(() => worker());
-  await Promise.all(workers);
-  return results;
-}
 async function handleExportDns(message, sender) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 1e4);
   const allPackages = await getAllPackages(controller);
-  const sortedPackages = await getPackageIDs(allPackages);
   clearTimeout(timeout);
-  if (!Array.isArray(sortedPackages.list))
-    throw new Error("Invalid response");
-  queuedItems = sortedPackages.list.map((id, i) => ({
-    id: `item-${i}`,
-    name: `Package ${id}`,
-    data: { id },
-    // store ID so it's accessible in DNS call
-    status: "queued"
-  }));
-  processedItems = [];
-  const allDnsArray = await processDnsInBatches([...queuedItems], 5);
-  const combinedDNSRecords = await combineDnsResponses(allDnsArray);
-  console.log(combinedDNSRecords);
-  await getZoneFiles(combinedDNSRecords);
-  return { status: "done", processed: processedItems.length };
+  const jobStarted = await withSessionCookie(getZoneFiles, allPackages);
+  console.log(jobStarted);
+  return { status: "done" };
 }
 
 // background/index.js

@@ -34,20 +34,40 @@ export async function getPackageIDs(Packages) {
   });
 }
 
+// /**
+//  * Post the packages to external server for processing to list of Package IDs
+//  *
+//  * @param {combinedDnsRecordsJson} [combinedDnsRecordsJson] - Json Response from getAllPackages.
+//  * @returns {Promise<Object>} Json Response with URl to download Zone File
+//  */
+// export async function getZoneFiles(combinedDnsRecordsJson) {
+//   const url = "https://dns-exporter.joshuaminer.uk/convert_json_to_zonefile.py";
+//   return await fetchJson(url, {
+//     method: "POST",
+//     compress: true,
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//     json: combinedDnsRecordsJson,
+//   });
+// }
+
 /**
  * Post the packages to external server for processing to list of Package IDs
  *
- * @param {combinedDnsRecordsJson} [combinedDnsRecordsJson] - Json Response from getAllPackages.
+ * @param {packageList} [packageList] - Json Response from getAllPackages.
+ * @param {cookie} cookie - Cookie for My20i to allow access.
  * @returns {Promise<Object>} Json Response with URl to download Zone File
  */
-export async function getZoneFiles(combinedDnsRecordsJson) {
-  const url = "https://dns-exporter.joshuaminer.uk/convert_json_to_zonefile.py";
+export async function getZoneFiles(packageList, cookie) {
+  const url = "https://dns-exporter.joshuaminer.uk/export_to_zonefile.py";
   return await fetchJson(url, {
     method: "POST",
-    compress: true,
+    compress: false,
     headers: {
       "Content-Type": "application/json",
+      "X-Session-Token": cookie,
     },
-    json: combinedDnsRecordsJson,
+    json: packageList,
   });
 }
